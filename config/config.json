@@ -1,0 +1,5 @@
+{
+  "listen_address": "127.0.0.1:12345",
+  "url_prefix": "my-host.com:12345",
+  "allowed_users": []
+}

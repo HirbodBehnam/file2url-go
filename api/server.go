@@ -12,7 +12,7 @@ import (
 // StartWebserver starts the http webserver to serve the files
 func StartWebserver(stopChannel <-chan struct{}) {
 	r := mux.NewRouter()
-	r.HandleFunc("/{id}/", downloadEndpoint)
+	r.HandleFunc("/{id}/{filename}", downloadEndpoint)
 	srv := &http.Server{
 		Handler:     r,
 		Addr:        config.Config.ListenAddress,

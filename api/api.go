@@ -1,11 +1,9 @@
 package api
 
 import (
-	"context"
+	"file2url/bot/downloader"
 	"file2url/shared"
 	"github.com/gorilla/mux"
-	"github.com/gotd/td/telegram"
-	"github.com/gotd/td/telegram/downloader"
 	"github.com/gotd/td/tg"
 	"log"
 	"net/http"
@@ -21,26 +19,19 @@ func downloadEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Set the headers
-	w.Header().Set("Content-Length", strconv.Itoa(file.Size))
+	w.Header().Set("Content-Length", "10")
 	w.Header().Set("Content-Type", file.MimeType)
 	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(file.Name))
 	// w.Header().Set("Accept-Ranges", "bytes")
 	// Run another client
-	err := telegram.BotFromEnvironment(r.Context(), telegram.Options{}, noOpClient, func(ctx context.Context, client *telegram.Client) error {
-		_, err := downloader.NewDownloader().Download(client.API(), &tg.InputDocumentFileLocation{
-			ID:            file.ID,
-			AccessHash:    file.AccessHash,
-			FileReference: file.FileReference,
-		}).Stream(ctx, w)
-		return err
-	})
+	err := downloader.Download(r.Context(), shared.API, &tg.InputDocumentFileLocation{
+		ID:            file.ID,
+		AccessHash:    file.AccessHash,
+		FileReference: file.FileReference,
+	}, w, 0, int64(file.Size))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("cannot start client for download: ", err)
 		return
 	}
-}
-
-func noOpClient(context.Context, *telegram.Client) error {
-	return nil
 }

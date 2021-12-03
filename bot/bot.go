@@ -12,6 +12,7 @@ import (
 
 // RunBot runs the bot to receive the updates
 func RunBot(_ context.Context, client *telegram.Client) error {
+	shared.API = client.API()
 	sender := message.NewSender(tg.NewClient(client))
 	shared.Dispatcher.OnNewMessage(func(ctx context.Context, entities tg.Entities, u *tg.UpdateNewMessage) error {
 		m, ok := u.Message.(*tg.Message)

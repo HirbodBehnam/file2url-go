@@ -8,9 +8,10 @@ import (
 )
 
 type chunkSource struct {
-	loc  tg.InputFileLocationClass
-	api  *tg.Client
-	size int64
+	loc tg.InputFileLocationClass
+	api *tg.Client
+	// What byte is the end
+	end int64
 }
 
 // Chunk implements ChunkSource.
@@ -33,7 +34,7 @@ func (s chunkSource) Chunk(ctx context.Context, offset int64, b []byte) (int64, 
 		n := int64(copy(b, result.Bytes))
 
 		var err error
-		if int64(req.Offset)+n >= s.size {
+		if int64(req.Offset)+n >= s.end {
 			// No more data.
 			err = io.EOF
 		}

@@ -110,14 +110,18 @@ func (s Streamer) StreamAt(ctx context.Context, skip, toRead int64, w io.Writer)
 			return er
 		}
 
-		nr = min(nr, toRead+bufSkip)
 		if nr > 0 {
-			if _, err := s.writeFull(ctx, buf[bufSkip:nr], w); err != nil {
+			bufferSlice := buf[bufSkip:nr]
+			if toRead < int64(len(bufferSlice)) {
+				bufferSlice = bufferSlice[:toRead]
+			}
+			written, err := s.writeFull(ctx, bufferSlice, w)
+			if err != nil {
 				// Writing side done.
 				return err
 			}
+			toRead -= written
 		}
-		toRead -= nr - bufSkip
 		if er == io.EOF || toRead <= 0 {
 			// Reading side exhausted.
 			return nil
@@ -139,11 +143,4 @@ func NewStreamer(r ChunkSource, chunkSize int64) *Streamer {
 		align:  chunkSize,
 		source: r,
 	}
-}
-
-func min(a int64, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
 }

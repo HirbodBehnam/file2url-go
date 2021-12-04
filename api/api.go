@@ -43,7 +43,7 @@ func downloadEndpoint(w http.ResponseWriter, r *http.Request) {
 	}, w, from, to+1)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("cannot start client for download: ", err)
+		log.Println("cannot start client for download: ", err, r.Header.Get("Range"))
 		return
 	}
 }

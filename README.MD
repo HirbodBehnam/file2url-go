@@ -6,8 +6,7 @@ A simple bot to convert files sent to it to URLs to make direct download links.
 
 * Fast download speeds
 * Option to allow only specific users to create download links
-
-*Coming soon:* Download a range of file.
+* Range support
 
 ## Setup
 

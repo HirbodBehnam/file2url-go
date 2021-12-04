@@ -42,7 +42,7 @@ func RunBot(_ context.Context, client *telegram.Client) error {
 						Name:          filename,
 						ID:            doc.ID,
 						AccessHash:    doc.AccessHash,
-						Size:          doc.Size,
+						Size:          int64(doc.Size),
 						MimeType:      doc.MimeType,
 					})
 					replyText = config.Config.URLPrefix + "/" + id + "/" + filename

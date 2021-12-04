@@ -17,5 +17,5 @@ type File struct {
 	MimeType   string
 	ID         int64
 	AccessHash int64
-	Size       int
+	Size       int64
 }

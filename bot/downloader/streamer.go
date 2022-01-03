@@ -16,7 +16,6 @@ type ChunkSource interface {
 
 // Streamer provides a pseudo-stream.
 type Streamer struct {
-	align  int64       // required chunk size
 	source ChunkSource // source of chunks
 }
 
@@ -63,9 +62,9 @@ func checkDone(ctx context.Context, errorChan <-chan error) error {
 // StreamAt streams from reader to "w" with "skip" offset.
 func (s Streamer) StreamAt(ctx context.Context, skip, toRead int64, w io.Writer) error {
 	var (
-		offset         = nearestOffset(s.align, skip)
+		offset         = nearestOffset(defaultPartSize, skip)
 		bufSkip        = skip - offset
-		toWrite        = make(chan []byte, 1)
+		toWrite        = make(chan toWriteBlock, 1)
 		writeErrorChan = make(chan error, 1)
 		closer         = util.SingleThreadOnce{}
 	)
@@ -79,10 +78,11 @@ func (s Streamer) StreamAt(ctx context.Context, skip, toRead int64, w io.Writer)
 		if err := checkDone(ctx, writeErrorChan); err != nil {
 			return err
 		}
-		buf := make([]byte, s.align)
+		buf := bufferPool.Get().([]byte)
 		nr, er := s.safeRead(ctx, offset, buf)
 		if er != nil && er != io.EOF {
 			// Reading side done with error
+			bufferPool.Put(buf)
 			return er
 		}
 
@@ -91,7 +91,10 @@ func (s Streamer) StreamAt(ctx context.Context, skip, toRead int64, w io.Writer)
 			if toRead < int64(len(bufferSlice)) {
 				bufferSlice = bufferSlice[:toRead]
 			}
-			toWrite <- bufferSlice
+			toWrite <- toWriteBlock{
+				toWrite:  bufferSlice,
+				original: buf,
+			}
 			toRead -= int64(len(bufferSlice))
 		}
 		if er == io.EOF || toRead <= 0 {
@@ -103,22 +106,23 @@ func (s Streamer) StreamAt(ctx context.Context, skip, toRead int64, w io.Writer)
 		}
 
 		// Continue.
-		offset += s.align // next chunk
-		bufSkip = 0       // only skip at first chunk
+		offset += defaultPartSize // next chunk
+		bufSkip = 0               // only skip at first chunk
 	}
 }
 
 // writerGoroutine writes whatever comes in toWrite into w
 // Writes until toWrite is closed
 // At the end, send either nil (on toWrite closed) or the error of w.Write() in errorChan
-func writerGoroutine(toWrite <-chan []byte, errorChan chan<- error, w io.Writer) {
+func writerGoroutine(toWrite <-chan toWriteBlock, errorChan chan<- error, w io.Writer) {
 	for {
 		data, ok := <-toWrite
 		if !ok {
 			errorChan <- nil
 			return
 		}
-		_, err := w.Write(data)
+		_, err := w.Write(data.toWrite)
+		bufferPool.Put(data.original) // put back the buffer in original pool
 		if err != nil {
 			errorChan <- err
 			return
@@ -128,12 +132,8 @@ func writerGoroutine(toWrite <-chan []byte, errorChan chan<- error, w io.Writer)
 
 // NewStreamer initializes and returns new *Streamer using provided chunk
 // source and chunk size.
-func NewStreamer(r ChunkSource, chunkSize int64) *Streamer {
-	if chunkSize <= 0 {
-		panic("invalid chunk size")
-	}
+func NewStreamer(r ChunkSource) *Streamer {
 	return &Streamer{
-		align:  chunkSize,
 		source: r,
 	}
 }

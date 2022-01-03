@@ -14,6 +14,6 @@ func Download(ctx context.Context, client *tg.Client, location tg.InputFileLocat
 		loc: location,
 		api: client,
 		end: to,
-	}, defaultPartSize)
+	})
 	return streamer.StreamAt(ctx, from, to-from, output)
 }

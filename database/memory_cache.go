@@ -35,8 +35,8 @@ func (m *MemoryCache) cleanupGoroutine() {
 		m.mu.Lock()
 		start := time.Now().Unix()
 		for k, v := range m.m {
-			// Delete entries older than an hour
-			if start-v.insertedTime > 3600 {
+			// Delete entries older than a day
+			if start-v.insertedTime > 3600*24 {
 				delete(m.m, k)
 			}
 		}

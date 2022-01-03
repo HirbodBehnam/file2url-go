@@ -2,7 +2,7 @@ package downloader
 
 import (
 	"context"
-	"errors"
+	"file2url/util"
 	"fmt"
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
@@ -20,7 +20,7 @@ type Streamer struct {
 	source ChunkSource // source of chunks
 }
 
-// nearestOffset returns nearest offset that will conform to aligning
+// nearestOffset returns the nearest offset that will conform to aligning
 // requirements.
 func nearestOffset(align, offset int64) int64 {
 	if align == 0 {
@@ -49,64 +49,40 @@ func (s Streamer) safeRead(ctx context.Context, offset int64, data []byte) (int6
 	}
 }
 
-// errInvalidWrite means that a write returned an impossible count.
-var errInvalidWrite = errors.New("invalid write result")
-
-func checkDone(ctx context.Context) error {
+func checkDone(ctx context.Context, errorChan <-chan error) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
+	case err := <-errorChan:
+		return err
 	default:
 		return nil
 	}
 }
 
-func (s Streamer) writeFull(ctx context.Context, buf []byte, dst io.Writer) (written int64, err error) {
-	nr := len(buf)
-
-	for {
-		if err = checkDone(ctx); err != nil {
-			break
-		}
-		if written == int64(nr) {
-			break
-		}
-		// Same logic as in io.Copy.
-		nw, ew := dst.Write(buf[written:nr])
-		if nw < 0 || nr < nw {
-			nw = 0
-			if ew == nil {
-				ew = errInvalidWrite
-			}
-		}
-		written += int64(nw)
-		if ew != nil {
-			err = ew
-			break
-		}
-		if nr != nw {
-			err = io.ErrShortWrite
-			break
-		}
-	}
-
-	return written, err
-}
-
 // StreamAt streams from reader to "w" with "skip" offset.
 func (s Streamer) StreamAt(ctx context.Context, skip, toRead int64, w io.Writer) error {
 	var (
-		buf     = make([]byte, s.align)
-		offset  = nearestOffset(s.align, skip)
-		bufSkip = skip - offset
+		offset         = nearestOffset(s.align, skip)
+		bufSkip        = skip - offset
+		toWrite        = make(chan []byte, 1)
+		writeErrorChan = make(chan error, 1)
+		closer         = util.SingleThreadOnce{}
 	)
+	defer closer.Do(func() {
+		close(toWrite)
+	})
+	// Create a goroutine for writing
+	go writerGoroutine(toWrite, writeErrorChan, w)
+	// Read in loop
 	for {
-		if err := checkDone(ctx); err != nil {
+		if err := checkDone(ctx, writeErrorChan); err != nil {
 			return err
 		}
+		buf := make([]byte, s.align)
 		nr, er := s.safeRead(ctx, offset, buf)
 		if er != nil && er != io.EOF {
-			// Reading side done.
+			// Reading side done with error
 			return er
 		}
 
@@ -115,21 +91,38 @@ func (s Streamer) StreamAt(ctx context.Context, skip, toRead int64, w io.Writer)
 			if toRead < int64(len(bufferSlice)) {
 				bufferSlice = bufferSlice[:toRead]
 			}
-			written, err := s.writeFull(ctx, bufferSlice, w)
-			if err != nil {
-				// Writing side done.
-				return err
-			}
-			toRead -= written
+			toWrite <- bufferSlice
+			toRead -= int64(len(bufferSlice))
 		}
 		if er == io.EOF || toRead <= 0 {
 			// Reading side exhausted.
-			return nil
+			closer.Do(func() {
+				close(toWrite)
+			})
+			return <-writeErrorChan // wait until everything is written
 		}
 
 		// Continue.
 		offset += s.align // next chunk
 		bufSkip = 0       // only skip at first chunk
+	}
+}
+
+// writerGoroutine writes whatever comes in toWrite into w
+// Writes until toWrite is closed
+// At the end, send either nil (on toWrite closed) or the error of w.Write() in errorChan
+func writerGoroutine(toWrite <-chan []byte, errorChan chan<- error, w io.Writer) {
+	for {
+		data, ok := <-toWrite
+		if !ok {
+			errorChan <- nil
+			return
+		}
+		_, err := w.Write(data)
+		if err != nil {
+			errorChan <- err
+			return
+		}
 	}
 }
 

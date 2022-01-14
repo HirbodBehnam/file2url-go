@@ -52,7 +52,7 @@ func RunBot(_ context.Context, client *telegram.Client) error {
 		}
 
 		// Send the link or error
-		_, err := sender.Reply(entities, u).Text(ctx, replyText)
+		_, err := sender.Reply(entities, u).NoWebpage().Text(ctx, replyText)
 		return err
 	})
 	return nil

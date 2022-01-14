@@ -6,6 +6,7 @@ import (
 	"file2url/bot"
 	"file2url/config"
 	"file2url/shared"
+	"fmt"
 	"github.com/gotd/td/session"
 	"github.com/gotd/td/telegram"
 	"log"
@@ -25,6 +26,7 @@ func main() {
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	stopChannel := make(chan struct{})
 	go api.StartWebserver(stopChannel)
+	fmt.Println("file2url-go version " + config.Version)
 	err := telegram.BotFromEnvironment(ctx,
 		telegram.Options{SessionStorage: &session.FileStorage{Path: "session"}, UpdateHandler: shared.Dispatcher},
 		bot.RunBot,

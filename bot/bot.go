@@ -8,6 +8,7 @@ import (
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/tg"
+	"net/url"
 )
 
 // RunBot runs the bot to receive the updates
@@ -45,7 +46,7 @@ func RunBot(_ context.Context, client *telegram.Client) error {
 						Size:          int64(doc.Size),
 						MimeType:      doc.MimeType,
 					})
-					replyText = config.Config.URLPrefix + "/" + id + "/" + filename
+					replyText = config.Config.URLPrefix + "/" + id + "/" + url.PathEscape(filename)
 				}
 			}
 		}

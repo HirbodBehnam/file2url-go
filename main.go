@@ -10,18 +10,13 @@ import (
 	"github.com/gotd/td/session"
 	"github.com/gotd/td/telegram"
 	"log"
-	"os"
 	"os/signal"
 	"syscall"
 )
 
 func main() {
 	// Load config
-	if len(os.Args) > 1 {
-		config.LoadConfig(os.Args[1])
-	} else {
-		config.LoadConfig("config.json")
-	}
+	config.LoadConfig()
 	// Load the bot
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	stopChannel := make(chan struct{})
@@ -35,4 +30,5 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	<-stopChannel // wait until the server is down
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // StartWebserver starts the http webserver to serve the files
-func StartWebserver(stopChannel <-chan struct{}) {
+func StartWebserver(stopChannel chan struct{}) {
 	r := mux.NewRouter()
 	r.HandleFunc("/{id}/{filename}", downloadEndpoint)
 	srv := &http.Server{
@@ -26,4 +26,5 @@ func StartWebserver(stopChannel <-chan struct{}) {
 	}()
 	<-stopChannel
 	_ = srv.Shutdown(context.Background())
+	stopChannel <- struct{}{}
 }

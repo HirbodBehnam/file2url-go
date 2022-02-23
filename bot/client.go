@@ -20,7 +20,8 @@ var sessionPool = sync.Pool{
 func GetNewApi(ctx context.Context) (*tg.Client, error) {
 	clientChannel := make(chan *tg.Client) // Send the client here
 	go func() {
-		_ = telegram.BotFromEnvironment(ctx, telegram.Options{SessionStorage: sessionPool.Get().(*session.StorageMemory)},
+		sessionStorage := sessionPool.Get().(*session.StorageMemory)
+		_ = telegram.BotFromEnvironment(ctx, telegram.Options{SessionStorage: sessionStorage},
 			func(ctx context.Context, client *telegram.Client) error { return nil },
 			func(ctx context.Context, client *telegram.Client) error {
 				clientChannel <- client.API()
@@ -28,6 +29,7 @@ func GetNewApi(ctx context.Context) (*tg.Client, error) {
 				return nil
 			})
 		close(clientChannel) // If we reach here without sending anything in clientChannel, we close it, so we can detect it
+		sessionPool.Put(sessionStorage)
 	}()
 	client, ok := <-clientChannel
 	if !ok { // channel closed; error

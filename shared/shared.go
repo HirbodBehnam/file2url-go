@@ -7,4 +7,3 @@ import (
 
 var Dispatcher = tg.NewUpdateDispatcher()
 var Database = database.NewMemoryCache()
-var API *tg.Client

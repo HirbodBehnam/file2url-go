@@ -1,8 +1,7 @@
 package api
 
 import (
-	"context"
-	"file2url/bot"
+	"file2url/bot/clients"
 	"file2url/bot/downloader"
 	"file2url/shared"
 	"fmt"
@@ -38,15 +37,14 @@ func downloadEndpoint(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusPartialContent)
 	}
 	// Run another client
-	apiContext, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	clientAPI, err := bot.GetNewApi(apiContext)
+	clientAPI, err := clients.ClientPools.Get()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
-	err = downloader.Download(r.Context(), clientAPI, &tg.InputDocumentFileLocation{
+	defer clients.ClientPools.Put(clientAPI)
+	err = downloader.Download(r.Context(), clientAPI.API(), &tg.InputDocumentFileLocation{
 		ID:            file.ID,
 		AccessHash:    file.AccessHash,
 		FileReference: file.FileReference,

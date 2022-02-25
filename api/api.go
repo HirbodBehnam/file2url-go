@@ -14,6 +14,12 @@ import (
 
 // downloadEndpoint downloads a file requested
 func downloadEndpoint(w http.ResponseWriter, r *http.Request) {
+	// Filter the methods
+	if r.Method != "GET" && r.Method != "HEAD" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	// Get the file id
 	id := mux.Vars(r)["id"]
 	file, exists := shared.Database.Load(id)
 	if !exists {
@@ -35,6 +41,10 @@ func downloadEndpoint(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Range") != "" {
 		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", from, to, file.Size))
 		w.WriteHeader(http.StatusPartialContent)
+	}
+	// Check head method
+	if r.Method == "HEAD" {
+		return
 	}
 	// Run another client
 	clientAPI, err := clients.ClientPools.Get()

@@ -8,6 +8,7 @@ import (
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/tg"
+	"log"
 	"net/url"
 )
 
@@ -37,7 +38,7 @@ func RunBot(_ context.Context, client *telegram.Client) error {
 							break
 						}
 					}
-					id := shared.Database.Store(database.File{
+					id, err := shared.Database.Store(database.File{
 						FileReference: doc.FileReference,
 						Name:          filename,
 						ID:            doc.ID,
@@ -45,7 +46,12 @@ func RunBot(_ context.Context, client *telegram.Client) error {
 						Size:          int64(doc.Size),
 						MimeType:      doc.MimeType,
 					})
-					replyText = config.Config.URLPrefix + "/" + id + "/" + url.PathEscape(filename)
+					if err != nil {
+						replyText = "cannot insert data in database"
+						log.Println("cannot insert data in database: ", err)
+					} else {
+						replyText = config.Config.URLPrefix + "/" + id + "/" + url.PathEscape(filename)
+					}
 				}
 			}
 		}

@@ -7,6 +7,7 @@ A simple bot to convert files sent to it to URLs to make direct download links.
 * Fast download speeds
 * Option to allow only specific users to create download links
 * Range support
+* Database support
 
 ## Setup
 
@@ -45,3 +46,10 @@ To run this app on Heroku, you only need to specify one environment variable oth
 export DYNO_NAME=my-dyno-name
 ```
 
+### Databases
+
+This bot will use a database to store the file information which is mapped from a UUID. By default, bot will use an in
+memory cache to store these values. This each entry has a TTL of one day by default.
+
+You can change the in memory cache to [bbolt](https://github.com/etcd-io/bbolt) in order to make the data persistent on
+disk. To enable bbolt, set the environment variable of `BOLT_DB_PATH` to a file which is the database.

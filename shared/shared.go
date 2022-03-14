@@ -6,4 +6,4 @@ import (
 )
 
 var Dispatcher = tg.NewUpdateDispatcher()
-var Database = database.NewMemoryCache()
+var Database database.Interface

@@ -45,15 +45,15 @@ func (m *MemoryCache) cleanupGoroutine() {
 }
 
 // Store stores the file in the cache and returns an ID for it
-func (m *MemoryCache) Store(f File) string {
-	id := uuid.New().String()
+func (m *MemoryCache) Store(f File) (string, error) {
+	id := uuid.NewString()
 	m.mu.Lock()
 	m.m[id] = memoryCacheValue{
 		file:         f,
 		insertedTime: time.Now().Unix(),
 	}
 	m.mu.Unlock()
-	return id
+	return id, nil
 }
 
 // Load loads a file from cache
@@ -62,4 +62,9 @@ func (m *MemoryCache) Load(id string) (File, bool) {
 	f, exists := m.m[id]
 	m.mu.RUnlock()
 	return f.file, exists
+}
+
+// Close is no-op in here
+func (m *MemoryCache) Close() error {
+	return nil
 }

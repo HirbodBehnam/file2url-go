@@ -10,6 +10,7 @@ import (
 	"github.com/gotd/td/tg"
 	"log"
 	"net/url"
+	"time"
 )
 
 // RunBot runs the bot to receive the updates
@@ -45,6 +46,7 @@ func RunBot(_ context.Context, client *telegram.Client) error {
 						AccessHash:    doc.AccessHash,
 						Size:          int64(doc.Size),
 						MimeType:      doc.MimeType,
+						AddedTime:     time.Now(),
 					})
 					if err != nil {
 						replyText = "cannot insert data in database"

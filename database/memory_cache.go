@@ -9,21 +9,13 @@ import (
 // MemoryCache is an in memory cache to store files which want to be downloaded temporary
 // The cache is deleted every hour
 type MemoryCache struct {
-	m  map[string]memoryCacheValue
+	m  map[string]File
 	mu sync.RWMutex
-}
-
-// memoryCacheValue contains a file and the time which it has been inserted
-type memoryCacheValue struct {
-	// The file to hold
-	file File
-	// When was this file inserted in unix epoch
-	insertedTime int64
 }
 
 // NewMemoryCache creates a new memory cache and setups a cleanup goroutine
 func NewMemoryCache() *MemoryCache {
-	m := &MemoryCache{m: make(map[string]memoryCacheValue)}
+	m := &MemoryCache{m: make(map[string]File)}
 	go m.cleanupGoroutine()
 	return m
 }
@@ -33,10 +25,10 @@ func (m *MemoryCache) cleanupGoroutine() {
 	for {
 		time.Sleep(time.Hour)
 		m.mu.Lock()
-		start := time.Now().Unix()
+		start := time.Now()
 		for k, v := range m.m {
 			// Delete entries older than a day
-			if start-v.insertedTime > 3600*24 {
+			if start.Sub(v.AddedTime) > time.Hour*24 {
 				delete(m.m, k)
 			}
 		}
@@ -48,10 +40,7 @@ func (m *MemoryCache) cleanupGoroutine() {
 func (m *MemoryCache) Store(f File) (string, error) {
 	id := uuid.NewString()
 	m.mu.Lock()
-	m.m[id] = memoryCacheValue{
-		file:         f,
-		insertedTime: time.Now().Unix(),
-	}
+	m.m[id] = f
 	m.mu.Unlock()
 	return id, nil
 }
@@ -61,7 +50,7 @@ func (m *MemoryCache) Load(id string) (File, bool) {
 	m.mu.RLock()
 	f, exists := m.m[id]
 	m.mu.RUnlock()
-	return f.file, exists
+	return f, exists
 }
 
 // Close is no-op in here

@@ -1,5 +1,7 @@
 package database
 
+import "time"
+
 // Interface provides an interface to store the files in a database of choice
 type Interface interface {
 	// Store must store a File in database and return a unique ID mapped to file
@@ -14,6 +16,8 @@ type Interface interface {
 // File holds the info needed for a file
 // See tg.InputDocumentFileLocation for more info about fields
 type File struct {
+	// When was this file added
+	AddedTime     time.Time
 	FileReference []byte
 	// Simply the file name
 	Name       string

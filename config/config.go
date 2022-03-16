@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const Version = "1.4.1"
+const Version = "1.5.0"
 
 // Config of the application
 var Config struct {

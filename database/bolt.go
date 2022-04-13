@@ -1,7 +1,10 @@
 package database
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/gob"
+	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"go.etcd.io/bbolt"
 )
@@ -12,6 +15,7 @@ type BoltDatabase struct {
 	database *bbolt.DB
 }
 
+// NewBoltDatabase will open a bolt database in specified path
 func NewBoltDatabase(path string) (BoltDatabase, error) {
 	db, err := bbolt.Open(path, 666, nil)
 	if err != nil {
@@ -24,19 +28,29 @@ func NewBoltDatabase(path string) (BoltDatabase, error) {
 	return BoltDatabase{db}, err
 }
 
+// Close closes the database
 func (db BoltDatabase) Close() error {
 	return db.database.Close()
 }
 
+// Store will store the file in database overwriting any old entries.
+// It will also create a random uuid and return its ID
 func (db BoltDatabase) Store(file File) (string, error) {
-	uid := uuid.New()                                    // create an ID for this
-	fileJson, _ := json.Marshal(file)                    // convert the file as json
-	err := db.database.Update(func(tx *bbolt.Tx) error { // save in database
-		return tx.Bucket(bucketName).Put(uid[:], fileJson)
+	uid := uuid.New() // create an ID for this
+	// Encode data
+	var fileData bytes.Buffer
+	err := gob.NewEncoder(&fileData).Encode(file)
+	if err != nil {
+		return "", fmt.Errorf("cannot gob the file: %w", err)
+	}
+	// Save in database
+	err = db.database.Update(func(tx *bbolt.Tx) error {
+		return tx.Bucket(bucketName).Put(uid[:], fileData.Bytes())
 	})
 	return uid.String(), err
 }
 
+// Load will load an entry from database
 func (db BoltDatabase) Load(id string) (File, bool) {
 	// Parse the UID
 	uid, err := uuid.Parse(id)
@@ -44,16 +58,15 @@ func (db BoltDatabase) Load(id string) (File, bool) {
 		return File{}, false
 	}
 	// Get data from database
-	var resultBytes []byte
+	var file File
 	err = db.database.View(func(tx *bbolt.Tx) error {
-		resultBytes = tx.Bucket(bucketName).Get(uid[:])
-		return nil
+		resultBytes := tx.Bucket(bucketName).Get(uid[:])
+		if resultBytes == nil { // id does not exists
+			return errors.New("not found")
+		}
+		// Decode data with a buffer
+		buffer := bytes.NewReader(resultBytes)
+		return gob.NewDecoder(buffer).Decode(&file)
 	})
-	if err != nil || resultBytes == nil { // db error or id does not exists
-		return File{}, false
-	}
-	// Parse json
-	var result File
-	err = json.Unmarshal(resultBytes, &result)
-	return result, err == nil
+	return file, err == nil
 }

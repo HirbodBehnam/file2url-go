@@ -51,6 +51,7 @@ func downloadEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
+		log.Println("cannot get client from pool:", err)
 		return
 	}
 	defer clients.ClientPools.Put(clientAPI)

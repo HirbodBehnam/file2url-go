@@ -1,21 +1,22 @@
 package database
 
 import (
-	"github.com/google/uuid"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // MemoryCache is an in memory cache to store files which want to be downloaded temporary
 // The cache is deleted every hour
 type MemoryCache struct {
-	m  map[string]File
+	m  map[uuid.UUID]File
 	mu sync.RWMutex
 }
 
 // NewMemoryCache creates a new memory cache and setups a cleanup goroutine
 func NewMemoryCache() *MemoryCache {
-	m := &MemoryCache{m: make(map[string]File)}
+	m := &MemoryCache{m: make(map[uuid.UUID]File)}
 	go m.cleanupGoroutine()
 	return m
 }
@@ -37,8 +38,8 @@ func (m *MemoryCache) cleanupGoroutine() {
 }
 
 // Store stores the file in the cache and returns an ID for it
-func (m *MemoryCache) Store(f File) (string, error) {
-	id := uuid.NewString()
+func (m *MemoryCache) Store(f File) (uuid.UUID, error) {
+	id := uuid.New()
 	m.mu.Lock()
 	m.m[id] = f
 	m.mu.Unlock()
@@ -46,7 +47,7 @@ func (m *MemoryCache) Store(f File) (string, error) {
 }
 
 // Load loads a file from cache
-func (m *MemoryCache) Load(id string) (File, bool) {
+func (m *MemoryCache) Load(id uuid.UUID) (File, bool) {
 	m.mu.RLock()
 	f, exists := m.m[id]
 	m.mu.RUnlock()

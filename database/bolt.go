@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+
 	"github.com/google/uuid"
 	"go.etcd.io/bbolt"
 )
@@ -17,7 +18,7 @@ type BoltDatabase struct {
 
 // NewBoltDatabase will open a bolt database in specified path
 func NewBoltDatabase(path string) (BoltDatabase, error) {
-	db, err := bbolt.Open(path, 666, nil)
+	db, err := bbolt.Open(path, 0666, nil)
 	if err != nil {
 		return BoltDatabase{}, err
 	}
@@ -35,32 +36,27 @@ func (db BoltDatabase) Close() error {
 
 // Store will store the file in database overwriting any old entries.
 // It will also create a random uuid and return its ID
-func (db BoltDatabase) Store(file File) (string, error) {
+func (db BoltDatabase) Store(file File) (uuid.UUID, error) {
 	uid := uuid.New() // create an ID for this
 	// Encode data
 	var fileData bytes.Buffer
 	err := gob.NewEncoder(&fileData).Encode(file)
 	if err != nil {
-		return "", fmt.Errorf("cannot gob the file: %w", err)
+		return uuid.UUID{}, fmt.Errorf("cannot gob the file: %w", err)
 	}
 	// Save in database
 	err = db.database.Update(func(tx *bbolt.Tx) error {
 		return tx.Bucket(bucketName).Put(uid[:], fileData.Bytes())
 	})
-	return uid.String(), err
+	return uid, err
 }
 
 // Load will load an entry from database
-func (db BoltDatabase) Load(id string) (File, bool) {
-	// Parse the UID
-	uid, err := uuid.Parse(id)
-	if err != nil { // invalid UID, just ignore this
-		return File{}, false
-	}
+func (db BoltDatabase) Load(id uuid.UUID) (File, bool) {
 	// Get data from database
 	var file File
-	err = db.database.View(func(tx *bbolt.Tx) error {
-		resultBytes := tx.Bucket(bucketName).Get(uid[:])
+	err := db.database.View(func(tx *bbolt.Tx) error {
+		resultBytes := tx.Bucket(bucketName).Get(id[:])
 		if resultBytes == nil { // id does not exists
 			return errors.New("not found")
 		}

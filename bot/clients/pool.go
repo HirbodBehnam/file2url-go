@@ -3,9 +3,10 @@ package clients
 import (
 	"container/list"
 	"context"
-	"github.com/gotd/td/tg"
 	"sync"
 	"time"
+
+	"github.com/gotd/td/tg"
 )
 
 // apiPool contains a pool for telegram api, so we don't create and delete them for each request

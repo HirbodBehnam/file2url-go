@@ -5,11 +5,13 @@ import (
 	"file2url/bot/downloader"
 	"file2url/shared"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/gotd/td/tg"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
+	"github.com/gotd/td/tg"
 )
 
 // downloadEndpoint downloads a file requested
@@ -20,7 +22,11 @@ func downloadEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Get the file id
-	id := mux.Vars(r)["id"]
+	id, err := uuid.Parse(mux.Vars(r)["id"])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	file, exists := shared.Database.Load(id)
 	if !exists {
 		http.NotFound(w, r)

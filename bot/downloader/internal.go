@@ -3,8 +3,9 @@ package downloader
 import (
 	"context"
 	"fmt"
-	"github.com/gotd/td/tg"
 	"io"
+
+	"github.com/gotd/td/tg"
 )
 
 type chunkSource struct {
@@ -17,7 +18,7 @@ type chunkSource struct {
 // Chunk implements ChunkSource.
 func (s chunkSource) Chunk(ctx context.Context, offset int64, b []byte) (int64, error) {
 	req := &tg.UploadGetFileRequest{
-		Offset:   int(offset),
+		Offset:   offset,
 		Limit:    len(b),
 		Location: s.loc,
 	}

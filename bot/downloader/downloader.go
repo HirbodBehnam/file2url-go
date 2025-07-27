@@ -2,8 +2,9 @@ package downloader
 
 import (
 	"context"
-	"github.com/gotd/td/tg"
 	"io"
+
+	"github.com/gotd/td/tg"
 )
 
 const defaultPartSize = 64 * 1024

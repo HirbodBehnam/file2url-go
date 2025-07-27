@@ -4,9 +4,10 @@ import (
 	"context"
 	"file2url/util"
 	"fmt"
+	"io"
+
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
-	"io"
 )
 
 // ChunkSource downloads chunks.

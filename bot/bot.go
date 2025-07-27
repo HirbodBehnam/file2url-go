@@ -5,12 +5,13 @@ import (
 	"file2url/config"
 	"file2url/database"
 	"file2url/shared"
-	"github.com/gotd/td/telegram"
-	"github.com/gotd/td/telegram/message"
-	"github.com/gotd/td/tg"
 	"log"
 	"net/url"
 	"time"
+
+	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/telegram/message"
+	"github.com/gotd/td/tg"
 )
 
 // RunBot runs the bot to receive the updates
@@ -52,7 +53,7 @@ func RunBot(_ context.Context, client *telegram.Client) error {
 						replyText = "cannot insert data in database"
 						log.Println("cannot insert data in database: ", err)
 					} else {
-						replyText = config.Config.URLPrefix + "/" + id + "/" + url.PathEscape(filename)
+						replyText = config.Config.URLPrefix + "/" + id.String() + "/" + url.PathEscape(filename)
 					}
 				}
 			}

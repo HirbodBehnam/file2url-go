@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const Version = "1.5.2"
+const Version = "1.6.0"
 
 // Config of the application
 var Config struct {
@@ -21,13 +21,8 @@ var Config struct {
 // LoadConfig loads the configs from environment variables
 func LoadConfig() {
 	// Load listen address
-	if port := os.Getenv("PORT"); port != "" { // Heroku
-		Config.ListenAddress = ":" + port
-		Config.URLPrefix = "https://" + os.Getenv("DYNO_NAME") + ".herokuapp.com"
-	} else { // Normal
-		Config.ListenAddress = os.Getenv("LISTEN")
-		Config.URLPrefix = os.Getenv("URL_PREFIX")
-	}
+	Config.ListenAddress = os.Getenv("LISTEN")
+	Config.URLPrefix = os.Getenv("URL_PREFIX")
 	// Load allowed users
 	users := strings.Split(os.Getenv("ALLOWED_USERS"), ",")
 	Config.AllowedUsers = make([]int64, 0, len(users))

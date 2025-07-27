@@ -3,10 +3,11 @@ package api
 import (
 	"context"
 	"file2url/config"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 // StartWebserver starts the http webserver to serve the files
